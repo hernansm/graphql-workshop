@@ -1,0 +1,5 @@
+type MenuItem {
+    id: ID
+    name: String
+    price: Float
+}

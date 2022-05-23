@@ -1,0 +1,5 @@
+type HoursItem {
+    id: ID
+    openTime: String
+    closeTime: String
+}

@@ -1,0 +1,5 @@
+type Address {
+    id: ID
+    streetNumber: String
+    streetName: String
+}

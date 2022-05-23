@@ -1,42 +1,50 @@
-type Address {
-    id: ID
-    streetNumber: String
-    streetName: String
-}
-
-type MenuItem {
-    id: ID
-    name: String
-    price: Float
-}
-
-type HoursItem {
-    id: ID
-    openTime: String
-    closeTime: String
-}
-
-type Shop {
-    id: ID
-    address: Address
-    menu: [MenuItem]
-    hours: HoursItem
-}
-
-type RootQuery {
-    shops: [Shop]
-    items: [MenuItem]
-    item(name: String, id: ID): MenuItem
-    shop(id:ID!): Shop
-}
-
-type RootMutation {
-    addMenuItem(name: String, price: Float): MenuItem
-    addShop(streetNumber: String, streetName: String): Shop
-
-}
-
-schema {
-    query: RootQuery
-    mutation: RootMutation
-}
+#type Book {
+#    id: ID
+#    author: String
+#    title: String
+#}
+#
+#type Address {
+#    id: ID
+#    streetNumber: String
+#    streetName: String
+#}
+#
+#type MenuItem {
+#    id: ID
+#    name: String
+#    price: Float
+#}
+#
+#type HoursItem {
+#    id: ID
+#    openTime: String
+#    closeTime: String
+#}
+#
+#type Shop {
+#    id: ID
+#    address: Address
+#    menu: [MenuItem]
+#    hours: HoursItem
+#}
+#
+#type RootQuery {
+#    books: [Book]
+#    shops: [Shop]
+#    items: [MenuItem]
+#    item(name: String, id: ID): MenuItem
+#    shop(id:ID!): Shop
+#    book(id:ID!): Book
+#}
+#
+#type RootMutation {
+#    addMenuItem(name: String, price: Float): MenuItem
+#    addShop(streetNumber: String, streetName: String): Shop
+#    addBook(title: String, author: String): Book
+#}
+#
+#schema {
+#    query: RootQuery
+#    mutation: RootMutation
+#}

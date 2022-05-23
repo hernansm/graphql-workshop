@@ -1,42 +1,102 @@
 // LOCAL
-// const {ApolloServer, gql} = require("apollo-server");
+ const {ApolloServer, gql} = require("apollo-server");
 // SERVERLESS
-const {
-    ApolloServer,
-    gql
-} = require("apollo-server-lambda");
+//const {
+//    ApolloServer,
+//    gql
+//} = require("apollo-server-lambda");
+
+const crypto = require('crypto');
 
 const {
     unmarshall
 } = require("@aws-sdk/util-dynamodb");
+
 const {
     DynamoDBClient,
     ScanCommand
 } = require("@aws-sdk/client-dynamodb");
 
-const client = new DynamoDBClient({
+const dynamodb = new DynamoDBClient({
     region: "us-east-1"
 });
 
-const fs = require('fs')
-const typeDefs = fs.readFileSync("./schema.gql").toString("utf-8");
+const AWS = require('aws-sdk');
+const docClient = new AWS.DynamoDB.DocumentClient({region: "us-east-1"});
 
-const getAddresses = async () => {
+const fs = require('fs')
+//const typeDefs = fs.readFileSync("./schema.gql").toString("utf-8");
+import schema from './schema';
+
+const defaultDBParams = {
+     TableName: "books",
+     AttributesToGet : [
+     'id',
+     'author',
+     'title',
+     ]
+}
+
+const getBooks = async () => {
     const params = {
-        TableName: "addresses",
+        TableName: "books",
     };
 
     try {
-        const results = await client.send(new ScanCommand(params));
-        const addresses = [];
+        const results = await dynamodb.send(new ScanCommand(params));
+        const books = [];
         results.Items.forEach((item) => {
-            addresses.push(unmarshall(item));
+            books.push(unmarshall(item));
         });
-        return addresses;
+        return books;
     } catch (err) {
         console.error(err);
         return err;
     }
+};
+
+let addBook = async (title, author) => {
+const bookId = crypto.randomUUID() + ""
+    const params = {
+        TableName: "books",
+        Item: {
+            "id": bookId,
+            "title": title,
+            "author": author
+        }
+    };
+
+    console.log("attempting to add book..");
+    console.log("params: "+ JSON.stringify(params.Item));
+
+    try {
+        const result = await docClient.put(params)
+            .promise()
+        console.log("success! id=", bookId)
+
+        return params.Item;
+    } catch (err) {
+        console.error(err);
+        return err;
+    }
+}
+
+
+let getBookById = async bookId => {
+    const params = {
+      TableName : 'books',
+      Key: {
+        id: bookId
+      }
+    }
+
+    try {
+            const data = await docClient.get(params).promise()
+            return data.Item;
+        } catch (err) {
+            console.error(err);
+            return err;
+        }
 };
 
 const getMenuItems = async () => {
@@ -45,7 +105,7 @@ const getMenuItems = async () => {
     };
 
     try {
-        const results = await client.send(new ScanCommand(params));
+        const results = await dynamodb.send(new ScanCommand(params));
         const menuItems = [];
         results.Items.forEach((item) => {
             menuItems.push(unmarshall(item));
@@ -188,6 +248,7 @@ const addresses = [{
     }
 ];
 
+/*
 const menuItems = [{
         "id": 1,
         "name": "Peppermint Latte",
@@ -269,10 +330,21 @@ const menuItems = [{
         "price": 2.81
     }
 ];
+*/
 
 // resolvers
 const resolvers = {
     RootQuery: {
+        books: () => {
+            return getBooks();
+        },
+        book: (_, {
+            id
+        }) => {
+            if (id != null) {
+                return getBookById(id);
+            }
+        },
         shops: () => {
             return shops;
         },
@@ -311,6 +383,14 @@ const resolvers = {
     },
 
     RootMutation: {
+        addBook: async (_, {
+            title,
+            author
+        }, { dataSources }) => {
+            return addBook(title, author);
+//            return getBookById("3");
+        },
+                
         addMenuItem: async (_, {
             name,
             price
@@ -353,6 +433,12 @@ const resolvers = {
         }
     },
 
+//    Book: {
+//        id(parent) {
+//            return getBookById();
+//        }
+//    },
+
     Shop: {
         address(parent) {
             return addresses.filter(address => address.id === parent.id)[0];
@@ -391,28 +477,32 @@ const resolvers = {
 };
 
 const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    playground: {
-        endpoint: "/dev/graphql",
-        settings: {
-            'editor.theme': 'light',
-        }
-    },
-    introspection: true,
+       schema,
+//    typeDefs,
+//    resolvers,
+//    playground: {
+//        endpoint: "/dev/graphql",
+//        settings: {
+//            'editor.theme': 'light',
+//        }
+//    },
+//    introspection: true,
 });
 
-// SERVERLESS
-const handler = server.createHandler({
-    cors: {
-        origin: '*',
-        credentials: true,
-    },
-});
+// remote deploy
+//// SERVERLESS
+//const handler = server.createHandler({
+//    cors: {
+//        origin: '*',
+//        credentials: true,
+//    },
+//});
 
-exports.graphqlHandler = handler;
+//exports.graphqlHandler = handler;
 
 // LOCAL
-// server.listen().then(({url}) => {
-//     console.log(`🚀  Server ready at ${url}`);
-// });
+ server
+    .listen()
+    .then(({url}) => {
+        console.log(`🚀  Server ready at ${url}`);
+ });

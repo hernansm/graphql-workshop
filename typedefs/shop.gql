@@ -1,0 +1,6 @@
+type Shop {
+    id: ID
+    address: Address
+    menu: [MenuItem]
+    hours: HoursItem
+}
