@@ -8,6 +8,11 @@ const {
 const fs = require('fs')
 const typeDefs = fs.readFileSync("./schema.gql").toString("utf-8");
 
+const crypto = require('crypto');
+
+const AWS = require('aws-sdk');
+const docClient = new AWS.DynamoDB.DocumentClient({region: "us-east-1"});
+
 /*
 // to deploy locally:
 const {
@@ -23,6 +28,73 @@ const {
     gql
 } = require("apollo-server-lambda");
 //*/
+
+let addShopToDB = async (shopId, shopOwnerId, name, streetName,streetNumber) => {
+//const shopId = crypto.randomUUID() + ""
+    const params = {
+        TableName: "shops",
+        Item: {
+            "id": shopId+ "",
+            "name": name,
+            "shopOwnerId": shopOwnerId,
+            "streetNumber": streetNumber,
+            "streetName": streetName
+        }
+    };
+
+    console.log("attempting to add shop to db..");
+    console.log("params: "+ JSON.stringify(params.Item));
+
+    try {
+        await docClient.put(params)
+                  .promise()
+                  .then((data) => {
+                     console.log("success!!",data);
+                   })
+                  .catch((err) => {
+                     console.log("boo!!",err);
+                   });
+
+//        const result = await docClient.put(params)
+//            .promise()
+//        console.log("success! name=", name)
+
+        return params.Item;
+    } catch (err) {
+        console.error(err);
+        return err;
+    }
+}
+
+
+let addProductToDB = async (productId, name, price,calories,ingredients) => {
+//const productId = crypto.randomUUID() + ""
+    const params = {
+        TableName: "products",
+        Item: {
+            "id": productId + "",
+            "name": name,
+            "price": price,
+            "calories": calories,
+            "ingredients": ingredients
+        }
+    };
+
+    console.log("attempting to add product to db.. ");
+    console.log("params: "+ JSON.stringify(params.Item));
+
+    try {
+        const result = await docClient.put(params)
+            .promise()
+        console.log("success! name=", name)
+
+        return params.Item;
+    } catch (err) {
+        console.error(err);
+        return err;
+    }
+}
+
 
 // resolvers
 const resolvers = {
@@ -88,16 +160,22 @@ const resolvers = {
     RootMutation: {
         addMenuItem: async (_, {
             name,
-            price
+            price,
+            calories,
+            ingredients
         }, {
             dataSources
         }) => {
             const item = {
                 "id": menuItems.length + 1,
                 "name": name,
-                "price": price
+                "price": price,
+                "calories": calories,
+                "ingredients": ingredients
             };
             menuItems.push(item);
+            addProductToDB(menuItems.length + 1, name, price, calories, ingredients);
+
             return item;
         },
         addShop: async (_, {
@@ -124,6 +202,7 @@ const resolvers = {
                 "hoursId": Math.floor(Math.random() * hoursItems.length) + 1
             };
             shops.push(newShop);
+            addShopToDB(shops.length + 1, shopOwnerId, name, streetName, streetNumber)
 
             return newShop;
         }
